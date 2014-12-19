@@ -5,6 +5,8 @@ var mongoose = require('mongoose');
 var path = require('path');
 var bodyParser = require('body-parser');
 
+var config = require('./config');
+
 mongoose.connect('mongodb://localhost/drop');
 
 var app = express();
@@ -26,6 +28,18 @@ router.route('/')
         console.log(ip)
 
         return res.render('index');
+    });
+
+router.route('*')
+    .get(function (req, res) {
+        var filePath = req.params[0];
+
+        var ip = req.headers['x-forwarded-for']||
+            req.connection.remoteAddress ||
+            req.socket.remoteAddress ||
+            req.connection.socket.remoteAddress;
+
+        res.sendFile(path.join(config.storageRoot, filePath));
     });
 
 app.use('/', router);
