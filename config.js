@@ -1,7 +1,7 @@
 'use strict';
 
 var config = {
-    storageRoot: '/'
+    storageRoot: '/Users/maxdeviant/drop'
 };
 
 module.exports = config;
