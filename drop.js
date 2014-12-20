@@ -30,6 +30,35 @@ router.route('/')
         return res.render('index');
     });
 
+router.route('/stats')
+    .get(function (req, res) {
+        Hit.find({}, function (err, hits) {
+            var stats = {};
+
+            hits.forEach(function (hit, index) {
+                var file = hit.file;
+                var timestamp = new Date(hit.timestamp);
+
+                stats[file] = stats[file] || {
+                    fileName: file,
+                    lastHit: null
+                };
+
+                if (typeof stats[file].hits === 'undefined') {
+                    stats[file].hits = 1;
+                } else {
+                    stats[file].hits++;
+                }
+
+                if (stats[file].lastHit < timestamp) {
+                    stats[file].lastHit = timestamp;
+                }
+            });
+
+            return res.json(stats);
+        });
+    });
+
 router.route('*')
     .get(function (req, res) {
         var filePath = req.params[0];
