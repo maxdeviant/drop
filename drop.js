@@ -59,6 +59,47 @@ router.route('/stats')
         });
     });
 
+router.route('/stats/unique')
+    .get(function (req, res) {
+        Hit.find({}, function (err, hits) {
+            var stats = {};
+            var visited = {};
+
+            hits.forEach(function (hit, index) {
+                var file = hit.file;
+                var timestamp = new Date(hit.timestamp);
+                var requester = hit.requester;
+
+                stats[file] = stats[file] || {
+                    fileName: file,
+                    lastHit: null
+                };
+
+                visited[file] = visited[file] || {};
+
+                if (typeof visited[file][requester] === 'undefined') {
+                    visited[file][requester] = false;
+                }
+
+                if (!visited[file][requester]) {
+                    if (typeof stats[file].hits === 'undefined') {
+                        stats[file].hits = 1;
+                    } else {
+                        stats[file].hits++;
+                    }
+
+                    visited[file][requester] = true;
+                }
+
+                if (stats[file].lastHit < timestamp) {
+                    stats[file].lastHit = timestamp;
+                }
+            });
+
+            return res.json(stats);
+        });
+    });
+
 router.route('*')
     .get(function (req, res) {
         var filePath = req.params[0];
