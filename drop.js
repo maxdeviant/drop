@@ -3,15 +3,22 @@
 var express = require('express');
 var mongoose = require('mongoose');
 var path = require('path');
+var fs = require('fs');
 var bodyParser = require('body-parser');
 
 var config = require('./config');
 
 mongoose.connect('mongodb://localhost/drop');
 
+var Hit = require('./models/hit');
+
 var app = express();
 
 app.set('env', 'production');
+
+app.use(express.static(path.join(__dirname, 'public'), {
+    maxAge: 24 * 60 * 60 * 1000
+}));
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -39,7 +46,26 @@ router.route('*')
             req.socket.remoteAddress ||
             req.connection.socket.remoteAddress;
 
-        res.sendFile(path.join(config.storageRoot, filePath));
+        fs.exists(path.join(config.storageRoot, filePath), function (exists) {
+            if (exists) {
+                var hit = new Hit();
+
+                hit.requester = ip;
+                hit.timestamp = Date.now();
+                hit.file = filePath;
+
+                hit.save(function (err) {
+                    if (err) {
+                        console.log(err);
+                    }
+
+                    res.sendFile(path.join(config.storageRoot, filePath));
+                });
+            } else {
+                res.render('file-not-found');
+            }
+        });
+
     });
 
 app.use('/', router);
