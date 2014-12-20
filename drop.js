@@ -27,13 +27,6 @@ var router = express.Router();
 
 router.route('/')
     .get(function (req, res) {
-        var ip = req.headers['x-forwarded-for']||
-            req.connection.remoteAddress ||
-            req.socket.remoteAddress ||
-            req.connection.socket.remoteAddress;
-
-        console.log(ip)
-
         return res.render('index');
     });
 
