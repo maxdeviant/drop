@@ -110,7 +110,7 @@ router.route('*')
             req.socket.remoteAddress ||
             req.connection.socket.remoteAddress;
 
-        fs.exists(path.join(config.storageRoot, filePath), function (exists) {
+        fs.exists(path.join(config.storage_root, filePath), function (exists) {
             if (exists) {
                 var hit = new Hit();
 
@@ -123,7 +123,7 @@ router.route('*')
                         console.log(err);
                     }
 
-                    res.sendFile(path.join(config.storageRoot, filePath));
+                    res.sendFile(path.join(config.storage_root, filePath));
                 });
             } else {
                 res.render('file-not-found');
