@@ -1,5 +1,6 @@
 {
     "storage_root": "~/drop",
+    "subdir": "",
     "token_secret": "",
     "session_secret": "",
     "user": {

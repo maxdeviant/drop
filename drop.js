@@ -97,9 +97,9 @@ router.route('/upload')
         }
 
         form.on('file', function (field, file) {
-            fs.rename(file.path, form.uploadDir + '/' + file.hash + getExtension(file.path));
+            fs.rename(file.path, path.join(form.uploadDir, file.hash + getExtension(file.path)));
 
-            redirectUrl = '/' + config.subdir + '/' + file.hash + getExtension(file.path);
+            redirectUrl = path.join('/', config.subdir, file.hash + getExtension(file.path));
         });
 
         form.parse(req, function (err, fields, files) {
