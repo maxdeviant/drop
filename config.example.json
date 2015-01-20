@@ -1,0 +1,8 @@
+{
+    "storage_root": "~/drop",
+    "token_secret": "",
+    "user": {
+        "username": "",
+        "password": ""
+    }
+}
