@@ -5,8 +5,12 @@ var mongoose = require('mongoose');
 var path = require('path');
 var fs = require('fs');
 var bodyParser = require('body-parser');
+var jwt = require('jwt-simple');
+var session = require('express-session');
+var bcrypt = require('bcrypt');
 
 var config = require('./config');
+var jwtauth = require('./lib/jwt-auth');
 
 mongoose.connect('mongodb://localhost/drop');
 
@@ -15,6 +19,19 @@ var Hit = require('./models/hit');
 var app = express();
 
 app.set('env', 'production');
+
+app.set('jwtTokenSecret', config.token_secret);
+
+app.use(session({
+    secret: config.session_secret,
+    saveUninitialized: true,
+    resave: true
+}));
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
+    extended: false
+}));
 
 app.use(express.static(path.join(__dirname, 'public'), {
     maxAge: 24 * 60 * 60 * 1000
@@ -28,6 +45,45 @@ var router = express.Router();
 router.route('/')
     .get(function (req, res) {
         return res.render('index');
+    });
+
+router.route('/login')
+    .get(function (req, res) {
+        return res.render('login');
+    });
+
+router.route('/auth')
+    .post(function (req, res) {
+        var username = req.body.username;
+        var password = req.body.password;
+
+        if (username === config.user.username) {
+            bcrypt.compare(password, config.user.password, function (err, isMatch) {
+                if (err) {
+                    return res.redirect('/login');
+                }
+
+                var expires = new Date();
+                expires.setDate(expires.getDate() + 7);
+
+                var token = jwt.encode({
+                    username: username,
+                    expires: expires
+                }, app.get('jwtTokenSecret'));
+
+                req.session.token = token;
+
+                return res.redirect('/upload');
+            });
+        }
+    });
+
+router.route('/upload')
+    .get([jwtauth], function (req, res) {
+        return res.render('upload');
+    })
+    .post([jwtauth], function (req, res) {
+
     });
 
 router.route('/stats')
