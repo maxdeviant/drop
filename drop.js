@@ -8,6 +8,7 @@ var bodyParser = require('body-parser');
 var jwt = require('jwt-simple');
 var session = require('express-session');
 var bcrypt = require('bcrypt');
+var formidable = require('formidable');
 
 var config = require('./config');
 var jwtauth = require('./lib/jwt-auth');
@@ -83,8 +84,32 @@ router.route('/upload')
         return res.render('upload');
     })
     .post([jwtauth], function (req, res) {
+        var form = new formidable.IncomingForm();
 
+        var redirectUrl = '';
+
+        form.uploadDir = config.storage_root + '/' + config.subdir;
+        form.keepExtensions = true;
+        form.hash = 'md5';
+
+        if (!fs.exists(form.uploadDir)) {
+            fs.mkdir(form.uploadDir);
+        }
+
+        form.on('file', function (field, file) {
+            fs.rename(file.path, form.uploadDir + '/' + file.hash + getExtension(file.path));
+
+            redirectUrl = '/' + config.subdir + '/' + file.hash + getExtension(file.path);
+        });
+
+        form.parse(req, function (err, fields, files) {
+            return res.redirect(redirectUrl);
+        });
     });
+
+function getExtension(path) {
+    return path.slice(path.lastIndexOf('.'), path.length);
+}
 
 router.route('/stats')
     .get(function (req, res) {
