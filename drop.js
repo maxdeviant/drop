@@ -204,7 +204,7 @@ router.route('*')
                 return res.render('file-not-found');
             }
 
-            if (!req.headers['referer'] || req.headers['host'].indexOf('localhost') === -1) {
+            if (!req.headers['referer'] || req.headers['host'].indexOf('localhost:' + app.get('port')) === -1) {
                 var hit = new Hit();
 
                 hit.requester = ip;
