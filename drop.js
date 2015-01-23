@@ -204,6 +204,8 @@ router.route('*')
                 return res.render('file-not-found');
             }
 
+            console.log(req.headers['referer'])
+
             if (!req.headers['referer'] || req.headers['referer'].indexOf(req.headers['host'] + '/stats') === -1) {
                 var hit = new Hit();
 
