@@ -185,6 +185,10 @@ router.route('*')
     .get(function (req, res) {
         var filePath = req.params[0];
 
+        if (/\/{2,}/.test(filePath)) {
+            return res.redirect(filePath.replace(/\/{2,}/g, '/'));
+        }
+
         var ip = req.headers['x-real-ip'] ||
             req.headers['x-forwarded-for'] ||
             req.connection.remoteAddress ||
