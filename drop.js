@@ -208,10 +208,10 @@ router.route('*')
                         console.log(err);
                     }
 
-                    res.sendFile(path.join(config.storage_root, filePath));
+                    return res.sendFile(path.join(config.storage_root, filePath));
                 });
             } else {
-                res.render('file-not-found');
+                return res.render('file-not-found');
             }
         });
 
@@ -221,7 +221,7 @@ app.use('/', router);
 
 app.use(function (err, req, res, next) {
     res.status(err.status || 500);
-    res.render('error', {
+    return res.render('error', {
         message: err.message,
         error: {
             status: err.status
