@@ -13,6 +13,8 @@ var formidable = require('formidable');
 var config = require('./config');
 var jwtauth = require('./lib/jwt-auth');
 
+var dateFilters = require('./filters/date.js');
+
 mongoose.connect('mongodb://localhost/drop');
 
 var Hit = require('./models/hit');
@@ -136,7 +138,9 @@ router.route('/stats')
                 }
             });
 
-            return res.json(stats);
+            return res.render('stats', {
+                stats: stats
+            });
         });
     });
 
@@ -196,7 +200,11 @@ router.route('*')
             req.connection.socket.remoteAddress;
 
         fs.exists(path.join(config.storage_root, filePath), function (exists) {
-            if (exists) {
+            if (!exists) {
+                return res.render('file-not-found');
+            }
+
+            if (!req.headers['referer'] || req.headers['referer'].indexOf(req.headers['host'] + '/stats') === -1) {
                 var hit = new Hit();
 
                 hit.requester = ip;
@@ -211,10 +219,9 @@ router.route('*')
                     return res.sendFile(path.join(config.storage_root, filePath));
                 });
             } else {
-                return res.render('file-not-found');
+                return res.sendFile(path.join(config.storage_root, filePath));
             }
         });
-
     });
 
 app.use('/', router);
