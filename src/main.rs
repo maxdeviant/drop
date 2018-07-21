@@ -5,6 +5,7 @@ extern crate dotenv;
 extern crate harsh;
 extern crate rocket;
 
+use std::fs;
 use std::fs::File;
 use std::io;
 use std::path::Path;
@@ -16,16 +17,49 @@ use rocket::response::Response;
 use rocket::Data;
 
 #[get("/")]
-fn index() -> &'static str {
-    "
-    drop (滴)
-    "
+fn index() -> io::Result<String> {
+    let mut drops = Vec::new();
+    for entry in fs::read_dir("upload")? {
+        let entry = entry?;
+        let id = entry.file_name().into_string().unwrap();
+        drops.push(id);
+    }
+
+    let links = drops
+        .iter()
+        .map(|drop| {
+            format!(
+                "<a href=\"{host}/{id}\">{id}</a>",
+                host = "http://localhost:8000",
+                id = drop
+            )
+        })
+        .collect::<Vec<String>>()
+        .join("");
+    let html = format!(
+        "
+        <!doctype html>
+        <html>
+        <head>
+            <title>drop (滴)</title>
+        </head>
+        <body>
+            <pre>drop (滴)</pre>
+
+            {links}
+        </body>
+        </html>
+    ",
+        links = links
+    );
+    Ok(html)
 }
 
 #[post("/", data = "<data>")]
 fn upload(data: Data) -> io::Result<String> {
     let harsh = HarshBuilder::new().salt("滴").init().unwrap();
-    let id = harsh.encode(&[1]).unwrap();
+    let count = fs::read_dir("upload")?.count() as u64;
+    let id = harsh.encode(&[count + 1]).unwrap();
     let filename = format!("upload/{id}", id = id);
     let url = format!("{host}/{id}\n", host = "http://localhost:8000", id = id);
 
