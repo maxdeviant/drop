@@ -1,6 +1,7 @@
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
 
+extern crate chrono;
 extern crate dotenv;
 extern crate harsh;
 extern crate rocket;
@@ -12,7 +13,10 @@ use std::fs;
 use std::fs::File;
 use std::io;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
+use chrono::TimeZone;
+use chrono::{DateTime, Utc};
 use dotenv::dotenv;
 use harsh::HarshBuilder;
 use rocket::http::{RawStr, Status};
@@ -29,23 +33,42 @@ struct TemplateContext {
 #[derive(Serialize)]
 struct Drop {
     id: String,
+    created_on: DateTime<Utc>,
+}
+
+fn system_time_to_date_time(system_time: SystemTime) -> DateTime<Utc> {
+    let (sec, nsec) = match system_time.duration_since(UNIX_EPOCH) {
+        Ok(dur) => (dur.as_secs() as i64, dur.subsec_nanos()),
+        Err(err) => {
+            let dur = err.duration();
+            let (sec, nsec) = (dur.as_secs() as i64, dur.subsec_nanos());
+            if nsec == 0 {
+                (-sec, 0)
+            } else {
+                (-sec - 1, 1_000_000_000 - nsec)
+            }
+        }
+    };
+    Utc.timestamp(sec, nsec)
+}
+
+fn list_drops() -> io::Result<Vec<Drop>> {
+    let mut drops = Vec::new();
+    for entry in fs::read_dir("upload")? {
+        let entry = entry?;
+        let id = entry.file_name().into_string().unwrap();
+        let last_modified = system_time_to_date_time(entry.metadata()?.modified()?);
+        drops.push(Drop {
+            id,
+            created_on: last_modified,
+        });
+    }
+    Ok(drops)
 }
 
 #[get("/")]
 fn index() -> io::Result<Template> {
-    let mut filenames = Vec::new();
-    for entry in fs::read_dir("upload")? {
-        let entry = entry?;
-        let id = entry.file_name().into_string().unwrap();
-        filenames.push(id);
-    }
-
-    let drops = filenames
-        .iter()
-        .map(|filename| Drop {
-            id: filename.clone(),
-        })
-        .collect::<Vec<Drop>>();
+    let drops = list_drops()?;
 
     let context = TemplateContext {
         base_url: String::from("http://localhost:8000"),
