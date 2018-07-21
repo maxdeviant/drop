@@ -4,6 +4,9 @@
 extern crate dotenv;
 extern crate harsh;
 extern crate rocket;
+extern crate rocket_contrib;
+#[macro_use]
+extern crate serde_derive;
 
 use std::fs;
 use std::fs::File;
@@ -15,44 +18,41 @@ use harsh::HarshBuilder;
 use rocket::http::{RawStr, Status};
 use rocket::response::Response;
 use rocket::Data;
+use rocket_contrib::Template;
+
+#[derive(Serialize)]
+struct TemplateContext {
+    base_url: String,
+    drops: Vec<Drop>,
+}
+
+#[derive(Serialize)]
+struct Drop {
+    id: String,
+}
 
 #[get("/")]
-fn index() -> io::Result<String> {
-    let mut drops = Vec::new();
+fn index() -> io::Result<Template> {
+    let mut filenames = Vec::new();
     for entry in fs::read_dir("upload")? {
         let entry = entry?;
         let id = entry.file_name().into_string().unwrap();
-        drops.push(id);
+        filenames.push(id);
     }
 
-    let links = drops
+    let drops = filenames
         .iter()
-        .map(|drop| {
-            format!(
-                "<a href=\"{host}/{id}\">{id}</a>",
-                host = "http://localhost:8000",
-                id = drop
-            )
+        .map(|filename| Drop {
+            id: filename.clone(),
         })
-        .collect::<Vec<String>>()
-        .join("");
-    let html = format!(
-        "
-        <!doctype html>
-        <html>
-        <head>
-            <title>drop (滴)</title>
-        </head>
-        <body>
-            <pre>drop (滴)</pre>
+        .collect::<Vec<Drop>>();
 
-            {links}
-        </body>
-        </html>
-    ",
-        links = links
-    );
-    Ok(html)
+    let context = TemplateContext {
+        base_url: String::from("http://localhost:8000"),
+        drops,
+    };
+
+    Ok(Template::render("index", &context))
 }
 
 #[post("/", data = "<data>")]
@@ -82,5 +82,6 @@ fn main() {
 
     rocket::ignite()
         .mount("/", routes![index, upload, retrieve])
+        .attach(Template::fairing())
         .launch();
 }
