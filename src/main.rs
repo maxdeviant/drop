@@ -6,16 +6,16 @@ extern crate dotenv;
 extern crate harsh;
 extern crate rocket;
 extern crate rocket_contrib;
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
 
 use std::fs;
 use std::fs::File;
 use std::io;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 
-use chrono::TimeZone;
 use chrono::{DateTime, Utc};
 use dotenv::dotenv;
 use harsh::HarshBuilder;
@@ -30,37 +30,35 @@ struct TemplateContext {
     drops: Vec<Drop>,
 }
 
-#[derive(Serialize)]
-struct Drop {
-    id: String,
+#[derive(Serialize, Deserialize)]
+struct DropMetadata {
     created_on: DateTime<Utc>,
 }
 
-fn system_time_to_date_time(system_time: SystemTime) -> DateTime<Utc> {
-    let (sec, nsec) = match system_time.duration_since(UNIX_EPOCH) {
-        Ok(dur) => (dur.as_secs() as i64, dur.subsec_nanos()),
-        Err(err) => {
-            let dur = err.duration();
-            let (sec, nsec) = (dur.as_secs() as i64, dur.subsec_nanos());
-            if nsec == 0 {
-                (-sec, 0)
-            } else {
-                (-sec - 1, 1_000_000_000 - nsec)
-            }
-        }
-    };
-    Utc.timestamp(sec, nsec)
+#[derive(Serialize)]
+struct Drop {
+    id: String,
+    metadata: DropMetadata,
 }
 
 fn list_drops() -> io::Result<Vec<Drop>> {
     let mut drops = Vec::new();
     for entry in fs::read_dir("upload")? {
         let entry = entry?;
-        let id = entry.file_name().into_string().unwrap();
-        let last_modified = system_time_to_date_time(entry.metadata()?.modified()?);
+        let filename = entry.file_name().into_string().unwrap();
+        if filename.ends_with(".meta") {
+            continue;
+        }
+        let metadata_filename = format!(
+            "{filename}.meta",
+            filename = entry.path().into_os_string().into_string().unwrap()
+        );
+        let metadata_file = File::open(Path::new(&metadata_filename))?;
+        let metadata: DropMetadata = serde_json::from_reader(metadata_file)?;
+
         drops.push(Drop {
-            id,
-            created_on: last_modified,
+            id: filename,
+            metadata,
         });
     }
     Ok(drops)
@@ -86,7 +84,15 @@ fn upload(data: Data) -> io::Result<String> {
     let filename = format!("upload/{id}", id = id);
     let url = format!("{host}/{id}\n", host = "http://localhost:8000", id = id);
 
+    let metadata_filename = format!("{filename}.meta", filename = filename);
+    let metadata = DropMetadata {
+        created_on: Utc::now(),
+    };
+    let metadata_json = serde_json::to_string(&metadata)?;
+
     data.stream_to_file(Path::new(&filename))?;
+    fs::write(&metadata_filename, metadata_json)?;
+
     Ok(url)
 }
 
