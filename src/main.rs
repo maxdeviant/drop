@@ -11,7 +11,8 @@ use std::path::Path;
 
 use dotenv::dotenv;
 use harsh::HarshBuilder;
-use rocket::http::RawStr;
+use rocket::http::{RawStr, Status};
+use rocket::response::Response;
 use rocket::Data;
 
 #[get("/")]
@@ -33,9 +34,13 @@ fn upload(data: Data) -> io::Result<String> {
 }
 
 #[get("/<id>")]
-fn retrieve(id: &RawStr) -> Option<File> {
+fn retrieve(id: &RawStr) -> Response {
     let filename = format!("upload/{id}", id = id);
-    File::open(&filename).ok()
+    let file = File::open(&filename).unwrap();
+    Response::build()
+        .status(Status::Ok)
+        .streamed_body(file)
+        .finalize()
 }
 
 fn main() {
