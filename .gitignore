@@ -1,2 +1,14 @@
+#
+# Drop
+#
+
+# Keep it secret, keep it safe.
+.env
+
+#
+# Rust
+#
+
+
 /target
 **/*.rs.bk
