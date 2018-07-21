@@ -1,0 +1,6 @@
+[package]
+name = "drop"
+version = "0.1.0"
+authors = ["Marshall Bowers <elliott.codes@gmail.com>"]
+
+[dependencies]
