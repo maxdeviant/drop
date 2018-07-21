@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = ["Marshall Bowers <elliott.codes@gmail.com>"]
 
 [dependencies]
+dotenv = "0.13.0"
+rocket = "0.3.15"
+rocket_codegen = "0.3.15"

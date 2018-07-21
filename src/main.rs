@@ -1,3 +1,18 @@
+#![feature(plugin)]
+#![plugin(rocket_codegen)]
+
+extern crate dotenv;
+extern crate rocket;
+
+use dotenv::dotenv;
+
+#[get("/")]
+fn index() -> &'static str {
+    "Hello, world!"
+}
+
 fn main() {
-    println!("Hello, world!");
+    dotenv().ok();
+
+    rocket::ignite().mount("/", routes![index]).launch();
 }
