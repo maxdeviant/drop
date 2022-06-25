@@ -133,9 +133,19 @@ async fn get_drop_metadata(id: DropId) -> Json<DropMetadata> {
     })
 }
 
+#[derive(Debug, Serialize)]
+pub struct UserJson {
+    pub id: String,
+    pub username: String,
+    pub full_name: Option<String>,
+}
+
 #[post("/users")]
-async fn create_user(mut db: Connection<Db>) -> database::Result<String> {
+async fn create_user(mut db: Connection<Db>) -> database::Result<Json<UserJson>> {
     let id = UserId::new();
+
+    let username = "maxdeviant";
+    let full_name = "Marshall Bowers";
 
     let unprefixed_id = id.unprefixed();
     let now = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
@@ -145,22 +155,35 @@ async fn create_user(mut db: Connection<Db>) -> database::Result<String> {
         unprefixed_id,
         now,
         now,
-        "maxdeviant",
-        "Marshall Bowers"
+        username,
+        full_name
     )
     .execute(&mut *db)
     .await?;
 
-    Ok(id.to_string())
+    Ok(Json(UserJson {
+        id: id.to_string(),
+        username: username.to_string(),
+        full_name: Some(full_name.to_string()),
+    }))
 }
 
-#[post("/users/<user_id>/keys")]
-async fn generate_api_key(mut db: Connection<Db>, user_id: UserId) -> database::Result<String> {
+#[derive(Debug, Serialize)]
+pub struct ApiKeyJson {
+    pub id: String,
+    pub value: String,
+}
+
+#[post("/keys")]
+async fn generate_api_key(
+    bearer: ApiKeyBearer,
+    mut db: Connection<Db>,
+) -> database::Result<Json<ApiKeyJson>> {
     let id = ApiKeyId::new();
     let value = ApiKeyValue::new();
 
     let unprefixed_id = id.unprefixed();
-    let unprefixed_user_id = user_id.unprefixed();
+    let unprefixed_user_id = bearer.user.id.unprefixed();
     let key_value = value.to_string();
     let now = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
 
@@ -175,7 +198,10 @@ async fn generate_api_key(mut db: Connection<Db>, user_id: UserId) -> database::
     .execute(&mut *db)
     .await?;
 
-    Ok(id.to_string())
+    Ok(Json(ApiKeyJson {
+        id: id.to_string(),
+        value: value.to_string(),
+    }))
 }
 
 #[rocket::main]
