@@ -67,7 +67,7 @@ entity_id!(UserId, "user");
 pub struct User {
     pub id: UserId,
     pub username: String,
-    pub full_name: String,
+    pub full_name: Option<String>,
 }
 
 /// The ID of an API key.

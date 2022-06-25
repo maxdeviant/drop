@@ -8,18 +8,18 @@ use std::path::Path;
 
 use chrono::{DateTime, SecondsFormat, Utc};
 use rocket::data::ToByteUnit;
-use rocket::request::FromParam;
+use rocket::outcome::{try_outcome, Outcome};
+use rocket::request::FromRequest;
+use rocket::request::{self, FromParam};
 use rocket::serde::json::Json;
 use rocket::serde::Serialize;
-use rocket::Data;
+use rocket::{Data, Request};
 use rocket_db_pools::{Connection, Database};
 use tokio::fs::File;
 
 use database::Db;
-use domain::{
-    entities::{ApiKeyId, DropId, UserId},
-    ApiKeyValue,
-};
+use domain::entities::{ApiKeyId, DropId, User, UserId};
+use domain::ApiKeyValue;
 
 impl<'a> FromParam<'a> for DropId {
     type Error = String;
@@ -39,13 +39,62 @@ impl<'a> FromParam<'a> for UserId {
     }
 }
 
+pub struct ApiKeyBearer {
+    user: User,
+}
+
+struct ApiKeyLookup {
+    pub id: String,
+    pub username: String,
+    pub full_name: Option<String>,
+}
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for ApiKeyBearer {
+    type Error = String;
+
+    async fn from_request(req: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+        let mut db = try_outcome!(req
+            .guard::<Connection<Db>>()
+            .await
+            .map_failure(|f| (f.0, "failed to acquire database connection".to_string())));
+
+        match req.headers().get_one("Authorization") {
+            Some(authorization) => {
+                let token = authorization.replace("Bearer ", "");
+
+                let api_key = sqlx::query_as!(
+                    ApiKeyLookup,
+                    "select user.id, user.username, user.full_name from api_key
+                     inner join user on user.id = api_key.user_id
+                     where api_key.value = $1
+                    ",
+                    token
+                )
+                .fetch_one(&mut *db)
+                .await
+                .unwrap();
+
+                Outcome::Success(ApiKeyBearer {
+                    user: User {
+                        id: UserId::try_from(api_key.id).unwrap(),
+                        username: api_key.username,
+                        full_name: api_key.full_name,
+                    },
+                })
+            }
+            _ => Outcome::Forward(()),
+        }
+    }
+}
+
 #[get("/")]
 async fn index() -> &'static str {
     "滴"
 }
 
 #[post("/drops", data = "<drop>")]
-async fn upload_drop(drop: Data<'_>) -> std::io::Result<String> {
+async fn upload_drop(_bearer: ApiKeyBearer, drop: Data<'_>) -> std::io::Result<String> {
     let id = DropId::new();
 
     let upload_dir = "upload";
