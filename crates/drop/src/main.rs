@@ -143,7 +143,10 @@ pub struct UserJson {
 }
 
 #[post("/users")]
-async fn create_user(mut db: Connection<Db>) -> database::Result<Json<UserJson>> {
+async fn create_user(
+    _bearer: ApiKeyBearer,
+    mut db: Connection<Db>,
+) -> database::Result<Json<UserJson>> {
     let id = UserId::new();
 
     let username = "maxdeviant";
