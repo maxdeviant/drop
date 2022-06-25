@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use chrono::{DateTime, TimeZone, Utc};
 use ulid::Ulid;
 
 /// The ID of a drop.
@@ -10,6 +11,10 @@ impl DropId {
     /// Returns a drop [`DropId`].
     pub fn new() -> Self {
         Self(Ulid::new())
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        Utc.timestamp(self.0.datetime().unix_timestamp(), 0)
     }
 }
 
