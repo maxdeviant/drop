@@ -66,9 +66,10 @@ impl<'r> FromRequest<'r> for ApiKeyBearer {
 
                 let api_key = sqlx::query_as!(
                     ApiKeyLookup,
-                    "select user.id, user.username, user.full_name from api_key
-                     inner join user on user.id = api_key.user_id
-                     where api_key.value = $1
+                    "
+                    select user.id, user.username, user.full_name from api_key
+                    inner join user on user.id = api_key.user_id
+                    where api_key.value = $1
                     ",
                     token
                 )
@@ -152,7 +153,10 @@ async fn create_user(mut db: Connection<Db>) -> database::Result<Json<UserJson>>
     let now = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
 
     sqlx::query!(
-        "insert into user (id, created_at, updated_at, username, full_name) values (?, ?, ?, ?, ?)",
+        "
+        insert into user (id, created_at, updated_at, username, full_name)
+        values (?, ?, ?, ?, ?)
+        ",
         unprefixed_id,
         now,
         now,
@@ -189,7 +193,10 @@ async fn generate_api_key(
     let now = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
 
     sqlx::query!(
-        "insert into api_key (id, created_at, updated_at, user_id, value) values (?, ?, ?, ?, ?)",
+        "
+        insert into api_key (id, created_at, updated_at, user_id, value)
+        values (?, ?, ?, ?, ?)
+        ",
         unprefixed_id,
         now,
         now,
@@ -205,9 +212,70 @@ async fn generate_api_key(
     }))
 }
 
+async fn ensure_root_user_exists() {
+    use sqlx::{Connection, SqliteConnection};
+
+    let root_username = env!("ROOT_USERNAME");
+    let root_api_key = env!("ROOT_API_KEY");
+
+    let database_url = env!("DATABASE_URL");
+    let mut connection = SqliteConnection::connect(database_url).await.unwrap();
+
+    let user_id = UserId::new();
+    let unprefixed_user_id = user_id.unprefixed();
+    let now = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+
+    #[derive(Debug)]
+    struct RootUser {
+        id: String,
+    }
+
+    let root_user = sqlx::query_as!(
+        RootUser,
+        "
+        insert into user (id, created_at, updated_at, username)
+        values (?, ?, ?, ?)
+        -- This is a no-op update just so we can get the `id` returned.
+        on conflict (username) do update set updated_at = updated_at
+        returning id
+        ",
+        unprefixed_user_id,
+        now,
+        now,
+        root_username
+    )
+    .fetch_one(&mut connection)
+    .await
+    .expect("failed to insert root user");
+
+    println!("Root user: {:?}", root_user);
+
+    let key_id = ApiKeyId::new();
+    let unprefixed_key_id = key_id.unprefixed();
+    let now = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+
+    sqlx::query!(
+        "
+        insert into api_key (id, created_at, updated_at, user_id, value)
+        values (?, ?, ?, ?, ?)
+        on conflict (value) do nothing
+        ",
+        unprefixed_key_id,
+        now,
+        now,
+        root_user.id,
+        root_api_key
+    )
+    .execute(&mut connection)
+    .await
+    .unwrap();
+}
+
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
     dotenv().ok();
+
+    ensure_root_user_exists().await;
 
     let rocket = rocket::build()
         .mount(
