@@ -1,4 +1,16 @@
 #
+# Drop
+#
+
+# Keep it secret, keep it safe.
+.env
+
+# SQLite files.
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+#
 # Rust
 #
 

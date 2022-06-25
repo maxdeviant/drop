@@ -5,5 +5,8 @@ stdenv.mkDerivation {
 
   buildInputs = [
       stdenv
+      pkg-config
+      openssl
+      sqlx-cli
   ];
 }
