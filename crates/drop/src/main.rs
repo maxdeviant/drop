@@ -7,6 +7,7 @@ mod domain;
 use std::path::Path;
 
 use chrono::{DateTime, SecondsFormat, Utc};
+use dotenv::dotenv;
 use rocket::data::ToByteUnit;
 use rocket::outcome::{try_outcome, Outcome};
 use rocket::request::FromRequest;
@@ -206,6 +207,8 @@ async fn generate_api_key(
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
+    dotenv().ok();
+
     let rocket = rocket::build()
         .mount(
             "/",
