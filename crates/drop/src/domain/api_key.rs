@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use rand::distributions::Alphanumeric;
 use rand::thread_rng;
 use rand::Rng;
@@ -14,5 +16,11 @@ impl ApiKeyValue {
                 .map(char::from)
                 .collect(),
         )
+    }
+}
+
+impl Display for ApiKeyValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

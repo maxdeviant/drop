@@ -10,7 +10,8 @@ chrono = { version = "0.4", features = ["serde"] }
 chrono-tz = "0.6"
 rand = "0.8"
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
+rocket_db_pools = { version = "0.1.0-rc.2", features = ["sqlx_sqlite"] }
 serde = { version = "1.0", features = ["derive"] }
-sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "sqlite"] }
+sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite"] }
 tokio = { version = "1", features = ["full"] }
 ulid = { version = "0.6", features = ["serde"] }
