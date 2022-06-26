@@ -20,6 +20,7 @@ use rocket::serde::json::Json;
 use rocket::serde::Serialize;
 use rocket::{Data, Request};
 use rocket_db_pools::{Connection, Database};
+use tokio::fs;
 
 use database::Db;
 use domain::entities::{ApiKeyId, DropId, User, UserId};
@@ -102,7 +103,10 @@ async fn index() -> &'static str {
 async fn upload_drop(_bearer: ApiKeyBearer, drop: Data<'_>) -> std::io::Result<String> {
     let id = DropId::new();
 
-    let temp_filepath = Path::new("temp").join(id.to_string());
+    let temp_dir = Path::new("temp");
+    fs::create_dir_all(temp_dir).await.unwrap();
+
+    let temp_filepath = temp_dir.join(id.to_string());
 
     drop.open(2.mebibytes()).into_file(&temp_filepath).await?;
 
