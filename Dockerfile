@@ -8,7 +8,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     objcopy --compress-debug-sections target/release/drop ./drop
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    cargo install sqlx-cli --no-default-features --features rustls,sqlite; \
+    --mount=type=cache,target=/app/sqlx-target \
+    cargo install --target-dir ./sqlx-target sqlx-cli --no-default-features --features rustls,sqlite; \
     objcopy --compress-debug-sections /usr/local/cargo/bin/sqlx ./sqlx
 
 FROM debian:bullseye-slim
