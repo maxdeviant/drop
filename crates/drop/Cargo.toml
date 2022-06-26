@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+aws-config = "0.14"
+aws-sdk-s3 = "0.14"
 chrono = { version = "0.4", features = ["serde"] }
 chrono-tz = "0.6"
 dotenv = "0.15"
@@ -15,4 +17,5 @@ rocket_db_pools = { version = "0.1.0-rc.2", features = ["sqlx_sqlite"] }
 serde = { version = "1.0", features = ["derive"] }
 sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite"] }
 tokio = { version = "1", features = ["full"] }
+tree_magic_mini = { version = "3.0", features = ["with-gpl-data"] }
 ulid = { version = "0.6", features = ["serde"] }

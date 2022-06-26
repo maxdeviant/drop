@@ -6,9 +6,12 @@ mod domain;
 
 use std::path::Path;
 
-use chrono::{DateTime, SecondsFormat, Utc};
+use aws_sdk_s3::types::ByteStream;
+use aws_sdk_s3::Client;
+use chrono::{DateTime, Datelike, SecondsFormat, Utc};
 use dotenv::dotenv;
 use rocket::data::ToByteUnit;
+use rocket::http::ContentType;
 use rocket::outcome::{try_outcome, Outcome};
 use rocket::request::FromRequest;
 use rocket::request::{self, FromParam};
@@ -99,20 +102,63 @@ async fn index() -> &'static str {
 async fn upload_drop(_bearer: ApiKeyBearer, drop: Data<'_>) -> std::io::Result<String> {
     let id = DropId::new();
 
-    let upload_dir = "upload";
-    let filepath = Path::new(upload_dir).join(id.unprefixed());
+    let temp_filepath = Path::new("temp").join(id.to_string());
 
-    drop.open(2.mebibytes()).into_file(filepath).await?;
+    drop.open(2.mebibytes()).into_file(&temp_filepath).await?;
+
+    let s3_config = aws_config::load_from_env().await;
+    let client = Client::new(&s3_config);
+
+    let body = ByteStream::from_path(&temp_filepath).await?;
+
+    client
+        .put_object()
+        .bucket(env!("AWS_S3_BUCKET"))
+        .key(format!(
+            "drops/{}/{}",
+            id.created_at().date().year(),
+            id.unprefixed()
+        ))
+        .body(body)
+        .send()
+        .await
+        .expect("failed to upload to S3");
+
+    tokio::fs::remove_file(temp_filepath).await.ok();
 
     Ok(id.to_string())
 }
 
 #[get("/drops/<id>")]
-async fn get_drop(id: DropId) -> Option<File> {
-    let upload_dir = "upload";
-    let filepath = Path::new(upload_dir).join(id.unprefixed());
+async fn get_drop(id: DropId) -> (ContentType, Vec<u8>) {
+    let s3_config = aws_config::load_from_env().await;
+    let client = Client::new(&s3_config);
 
-    File::open(&filepath).await.ok()
+    let object = client
+        .get_object()
+        .bucket(env!("AWS_S3_BUCKET"))
+        .key(format!(
+            "drops/{}/{}",
+            id.created_at().date().year(),
+            id.unprefixed()
+        ))
+        .send()
+        .await
+        .expect("failed to retrieve object from S3");
+
+    let bytes = object
+        .body
+        .collect()
+        .await
+        .map(|data| data.into_bytes())
+        .unwrap()
+        .to_vec();
+
+    let mime_type = tree_magic_mini::from_u8(&bytes);
+
+    let content_type = ContentType::parse_flexible(mime_type).unwrap_or(ContentType::Binary);
+
+    (content_type, bytes)
 }
 
 #[derive(Debug, Serialize)]
