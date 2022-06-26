@@ -168,6 +168,7 @@ async fn get_drop(id: DropId) -> (ContentType, Vec<u8>) {
 #[derive(Debug, Serialize)]
 pub struct DropMetadata {
     pub created_at: DateTime<Utc>,
+    pub mime_type: String,
     pub size_in_bytes: i64,
 }
 
@@ -188,8 +189,19 @@ async fn get_drop_metadata(id: DropId) -> Json<DropMetadata> {
         .await
         .expect("failed to retrieve object from S3");
 
+    let bytes = object
+        .body
+        .collect()
+        .await
+        .map(|data| data.into_bytes())
+        .unwrap()
+        .to_vec();
+
+    let mime_type = tree_magic_mini::from_u8(&bytes).to_string();
+
     Json(DropMetadata {
         created_at: id.created_at(),
+        mime_type,
         size_in_bytes: object.content_length,
     })
 }
