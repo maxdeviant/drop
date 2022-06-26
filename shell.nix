@@ -8,5 +8,6 @@ stdenv.mkDerivation {
       pkg-config
       openssl
       sqlx-cli
+      flyctl
   ];
 }
