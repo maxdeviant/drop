@@ -4,11 +4,13 @@ WORKDIR /app
 COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
+    set -eux; \
     cargo build --release; \
     objcopy --compress-debug-sections target/release/drop ./drop
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/sqlx-target \
+    set -eux; \
     cargo install --target-dir ./sqlx-target sqlx-cli --no-default-features --features rustls,sqlite; \
     objcopy --compress-debug-sections /usr/local/cargo/bin/sqlx ./sqlx
 
