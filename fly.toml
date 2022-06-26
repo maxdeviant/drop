@@ -9,6 +9,7 @@ processes = []
 [env]
 ROCKET_ADDRESS = "0.0.0.0"
 ROCKET_PORT = "8080"
+ROCKET_LOG_LEVEL = "debug"
 
 [experimental]
   cmd = "start.sh"
