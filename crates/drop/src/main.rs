@@ -4,6 +4,7 @@ extern crate rocket;
 mod database;
 mod domain;
 
+use std::env;
 use std::path::Path;
 
 use aws_sdk_s3::types::ByteStream;
@@ -112,7 +113,7 @@ async fn upload_drop(_bearer: ApiKeyBearer, drop: Data<'_>) -> std::io::Result<S
 
     client
         .put_object()
-        .bucket(env!("AWS_S3_BUCKET"))
+        .bucket(env::var("AWS_S3_BUCKET").unwrap())
         .key(format!(
             "drops/{}/{}",
             id.created_at().date().year(),
@@ -135,7 +136,7 @@ async fn get_drop(id: DropId) -> (ContentType, Vec<u8>) {
 
     let object = client
         .get_object()
-        .bucket(env!("AWS_S3_BUCKET"))
+        .bucket(env::var("AWS_S3_BUCKET").unwrap())
         .key(format!(
             "drops/{}/{}",
             id.created_at().date().year(),
@@ -173,7 +174,7 @@ async fn get_drop_metadata(id: DropId) -> Json<DropMetadata> {
 
     let object = client
         .get_object()
-        .bucket(env!("AWS_S3_BUCKET"))
+        .bucket(env::var("AWS_S3_BUCKET").unwrap())
         .key(format!(
             "drops/{}/{}",
             id.created_at().date().year(),
@@ -272,11 +273,11 @@ async fn generate_api_key(
 async fn ensure_root_user_exists() {
     use sqlx::{Connection, SqliteConnection};
 
-    let root_username = env!("ROOT_USERNAME");
-    let root_api_key = env!("ROOT_API_KEY");
+    let root_username = env::var("ROOT_USERNAME").unwrap();
+    let root_api_key = env::var("ROOT_API_KEY").unwrap();
 
-    let database_url = env!("DATABASE_URL");
-    let mut connection = SqliteConnection::connect(database_url).await.unwrap();
+    let database_url = env::var("DATABASE_URL").unwrap();
+    let mut connection = SqliteConnection::connect(&database_url).await.unwrap();
 
     let user_id = UserId::new();
     let unprefixed_user_id = user_id.unprefixed();
