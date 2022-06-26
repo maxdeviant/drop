@@ -19,7 +19,6 @@ use rocket::serde::json::Json;
 use rocket::serde::Serialize;
 use rocket::{Data, Request};
 use rocket_db_pools::{Connection, Database};
-use tokio::fs::File;
 
 use database::Db;
 use domain::entities::{ApiKeyId, DropId, User, UserId};
@@ -164,20 +163,29 @@ async fn get_drop(id: DropId) -> (ContentType, Vec<u8>) {
 #[derive(Debug, Serialize)]
 pub struct DropMetadata {
     pub created_at: DateTime<Utc>,
-    pub size_in_bytes: u64,
+    pub size_in_bytes: i64,
 }
 
 #[get("/drops/<id>/meta")]
 async fn get_drop_metadata(id: DropId) -> Json<DropMetadata> {
-    let upload_dir = "upload";
-    let filepath = Path::new(upload_dir).join(id.unprefixed());
+    let s3_config = aws_config::load_from_env().await;
+    let client = Client::new(&s3_config);
 
-    let file = File::open(&filepath).await.unwrap();
-    let file_metadata = File::metadata(&file).await.unwrap();
+    let object = client
+        .get_object()
+        .bucket(env!("AWS_S3_BUCKET"))
+        .key(format!(
+            "drops/{}/{}",
+            id.created_at().date().year(),
+            id.unprefixed()
+        ))
+        .send()
+        .await
+        .expect("failed to retrieve object from S3");
 
     Json(DropMetadata {
         created_at: id.created_at(),
-        size_in_bytes: file_metadata.len(),
+        size_in_bytes: object.content_length,
     })
 }
 
