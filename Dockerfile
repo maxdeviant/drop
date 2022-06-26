@@ -20,6 +20,14 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 FROM debian:bullseye-slim
 
+RUN set -eux; \
+    export DEBIAN_FRONTEND=noninteractive; \
+    apt update; \
+    apt install --yes --no-install-recommends ca-certificates; \
+    apt clean autoclean; \
+    apt autoremove --yes; \
+    rm -rf /var/lib/{apt,dpkg,cache,log}/
+
 WORKDIR app
 
 COPY ./Rocket.toml ./Rocket.toml
