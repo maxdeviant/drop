@@ -108,7 +108,7 @@ async fn upload_drop(_bearer: ApiKeyBearer, drop: Data<'_>) -> std::io::Result<S
 
     let temp_filepath = temp_dir.join(id.to_string());
 
-    drop.open(2.mebibytes()).into_file(&temp_filepath).await?;
+    drop.open(25.mebibytes()).into_file(&temp_filepath).await?;
 
     let s3_config = aws_config::load_from_env().await;
     let client = Client::new(&s3_config);
