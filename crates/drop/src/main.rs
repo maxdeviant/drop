@@ -12,7 +12,8 @@ use aws_sdk_s3::Client;
 use chrono::{DateTime, Datelike, SecondsFormat, Utc};
 use dotenv::dotenv;
 use rocket::data::ToByteUnit;
-use rocket::http::ContentType;
+use rocket::http::hyper::header;
+use rocket::http::{ContentType, Header};
 use rocket::outcome::{try_outcome, Outcome};
 use rocket::request::FromRequest;
 use rocket::request::{self, FromParam};
@@ -133,8 +134,16 @@ async fn upload_drop(_bearer: ApiKeyBearer, drop: Data<'_>) -> std::io::Result<S
     Ok(id.to_string())
 }
 
+#[derive(Responder)]
+struct DropResponse {
+    bytes: Vec<u8>,
+    content_type: ContentType,
+    cache_control: Header<'static>,
+    e_tag: Header<'static>,
+}
+
 #[get("/drops/<id>")]
-async fn get_drop(id: DropId) -> (ContentType, Vec<u8>) {
+async fn get_drop(id: DropId) -> DropResponse {
     let s3_config = aws_config::load_from_env().await;
     let client = Client::new(&s3_config);
 
@@ -150,6 +159,8 @@ async fn get_drop(id: DropId) -> (ContentType, Vec<u8>) {
         .await
         .expect("failed to retrieve object from S3");
 
+    let e_tag = object.e_tag().to_owned().unwrap_or("").to_owned();
+
     let bytes = object
         .body
         .collect()
@@ -162,7 +173,12 @@ async fn get_drop(id: DropId) -> (ContentType, Vec<u8>) {
 
     let content_type = ContentType::parse_flexible(mime_type).unwrap_or(ContentType::Binary);
 
-    (content_type, bytes)
+    DropResponse {
+        bytes,
+        content_type,
+        cache_control: Header::new(header::CACHE_CONTROL.to_string(), "public, max-age=3600"),
+        e_tag: Header::new(header::ETAG.to_string(), e_tag),
+    }
 }
 
 #[derive(Debug, Serialize)]
