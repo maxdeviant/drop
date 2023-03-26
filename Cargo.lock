@@ -751,9 +751,9 @@ dependencies = [
 
 [[package]]
 name = "entity_id"
-version = "0.0.3"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "425a2edbfc21b5175267864a65a38e180b2ff6ef51e86959f09d62dfcb4012b0"
+checksum = "877acde8393c2452952a46b703e8153c6d1c02e5ece1baccdac81f4669ab4e9e"
 dependencies = [
  "entity_id_core",
  "entity_id_derive",
@@ -761,9 +761,9 @@ dependencies = [
 
 [[package]]
 name = "entity_id_core"
-version = "0.0.3"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51487281dc57d38a4d8df1c5870a665bea9b017bc7a8f14594d3bd3c7046cdad"
+checksum = "c023b8b285eea07826f9921ea0910392b99ac262b233553cb90f3b80e8c24435"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -773,9 +773,9 @@ dependencies = [
 
 [[package]]
 name = "entity_id_derive"
-version = "0.0.3"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce833a9e805c13be438e3956b1bc4244ec7f4099522a143f4016b7b74598fb3e"
+checksum = "35654bf8c7ef37c1b78fa01b2cc25ba8af3a630629b279078f18aabff3e65436"
 dependencies = [
  "entity_id_core",
  "proc-macro2",
